@@ -21,7 +21,7 @@ class ChatHandler(BaseHTTPRequestHandler):
             self.handle_check()
         elif self.path == "/createUser":
             self.create_user()
-        elif self.path == "login":
+        elif self.path == "/login":
             self.login_user()
         elif self.path == "/sendMessage":
             self.send_message()
