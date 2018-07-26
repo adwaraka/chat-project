@@ -8,7 +8,7 @@ import ast
 
 class ChatHandler(BaseHTTPRequestHandler):
     def __init__(self, request, client_address, server):
-        self.conn = sqlite3.connect("chat_server.sqlite")
+        self.conn = sqlite3.connect("chat_server.sqlite", isolation_level=None)
         BaseHTTPRequestHandler.__init__(self, request, client_address, server)
 
     def do_POST(self):
@@ -53,27 +53,43 @@ class ChatHandler(BaseHTTPRequestHandler):
 
     #create_user implementation goes here
     def create_user(self):
-        content_len = int(self.headers.getheader('content-length', 0))
-        post_body = self.rfile.read(content_len)
-        data = ast.literal_eval(post_body)
-        username, password = data["username"], data["password"] #obviously we need to use a hash function to encrypt the data
-        user_id_list = [random.randint(0,9) for i in xrange(5)] #this needs to change to - better to have an alphanumeric key in db using UUId
-        user_id = 0
-        for i in user_id_list:
-            user_id = user_id*10 + i
-        #print user_id
         try:
-            print "Insert INTO user_credentials ({uid}, {user_name}, {password}) VALUES ({user_id_val}, \"{username_val}\", \"{password_val}\")".format\
-                  (uid="user_id", user_name="user_name", password="password", user_id_val=user_id, username_val=username, password_val=password)
-            return True
+            content_len = int(self.headers.getheader('content-length', 0))
+            post_body = self.rfile.read(content_len)
+            print post_body
+            data = ast.literal_eval(post_body)
+            username, password = data["username"], data["password"] #obviously we need to use a hash function to encrypt the data
+            user_id_list = [random.randint(0,9) for i in xrange(5)] #this needs to change to - better to have an alphanumeric key in db using UUId
+            user_id = 0
+            for i in user_id_list:
+                user_id = user_id*10 + i
+            username = "{username}_{user_id}".format(username=username, user_id=str(user_id))
+            with contextlib.closing(self.conn.cursor()) as cur:
+                create_user_stmt = "INSERT INTO user_credentials ({user_name}, {password}) VALUES (\"{username_val}\", \"{password_val}\")".format\
+                                   (user_name="user_name", password="password", username_val=username, password_val=password)
+                cur.execute(create_user_stmt)
+                print "Added user...."
+                return True
+            raise ValueError('a very bad thing happened...')
         except:
             return False
 
     #login_user implementation goes here
     def login_user(self):
-        content_len = int(self.headers.getheader('content-length', 0))
-        post_body = self.rfile.read(content_len)
-        print post_body
+        try:
+            content_len = int(self.headers.getheader('content-length', 0))
+            post_body = self.rfile.read(content_len)
+            print post_body
+            data = ast.literal_eval(post_body)
+            username, password = data["username"], data["password"]
+            with contextlib.closing(self.conn.cursor()) as cur:
+                create_user_stmt = "SELECT COUNT(*) FROM user_credentials WHERE ({user_name_field} = \'{username}\' AND {password_field} = \'{password_value}\')".format\
+                                   (user_name_field="user_name", username=username, password_field="password", password_value=password)
+                cur.execute(create_user_stmt)
+                return True
+            return True
+        except:
+            return False
 
     #send_message implementation goes here
     def send_message(self):
