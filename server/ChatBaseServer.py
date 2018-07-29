@@ -79,15 +79,15 @@ class ChatHandler(BaseHTTPRequestHandler):
         try:
             content_len = int(self.headers.getheader('content-length', 0))
             post_body = self.rfile.read(content_len)
-            print post_body
             data = ast.literal_eval(post_body)
             username, password = data["username"], data["password"]
             with contextlib.closing(self.conn.cursor()) as cur:
-                create_user_stmt = "SELECT COUNT(*) FROM user_credentials WHERE ({user_name_field} = \'{username}\' AND {password_field} = \'{password_value}\')".format\
+                create_user_stmt = "SELECT COUNT(*) FROM user_credentials WHERE ({user_name_field} = \"{username}\" AND {password_field} = \"{password_value}\")".format\
                                    (user_name_field="user_name", username=username, password_field="password", password_value=password)
                 cur.execute(create_user_stmt)
-                return True
-            return True
+                (number_of_rows,) = cur.fetchone()
+                return number_of_rows==1
+            raise ValueError('a very bad thing happened...')
         except:
             return False
 
