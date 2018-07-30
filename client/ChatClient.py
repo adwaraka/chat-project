@@ -65,13 +65,14 @@ def main():
     }
     '''
     payload = {}
-    payload['username'], payload['password'] = usr_name.strip(), password.strip()
-    #print payload
+    payload["username"], payload["password"] = usr_name.strip(), password.strip()
     login_url = "http://localhost:8080/login"
-    r = requests.post(url = login_url, data = payload, headers={'User-Agent': 'Mozilla/5.0'})
-    app = wx.App()
-    frame = ClientApp().Show()
-    app.MainLoop()
+    result = requests.post(url = login_url, data = json.dumps(payload))
+    print result
+    if result.status_code == 200:
+        app = wx.App()
+        frame = ClientApp().Show()
+        app.MainLoop()
 
 if __name__== "__main__":
     main()

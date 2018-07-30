@@ -86,8 +86,8 @@ class ChatHandler(BaseHTTPRequestHandler):
                                    (user_name_field="user_name", username=username, password_field="password", password_value=password)
                 cur.execute(create_user_stmt)
                 (number_of_rows,) = cur.fetchone()
-                return number_of_rows==1
-            raise ValueError('a very bad thing happened...')
+                print number_of_rows
+            return number_of_rows==1
         except:
             return False
 
