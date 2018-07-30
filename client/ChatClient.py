@@ -1,4 +1,6 @@
 import time, wx, sys, subprocess
+import json
+import requests
 from threading import *
 
 ID_FRAME = wx.NewId()
@@ -51,6 +53,22 @@ class ClientApp(wx.Frame):
         print "TODO"
     
 def main():
+    print "Please enter your login name :-"
+    usr_name = sys.stdin.readline()
+    print "Please enter your password   :-"
+    password = sys.stdin.readline()
+    '''
+    Login format
+    {
+        "username": "string",
+        "password": "pa$$word"
+    }
+    '''
+    payload = {}
+    payload['username'], payload['password'] = usr_name.strip(), password.strip()
+    #print payload
+    login_url = "http://localhost:8080/login"
+    r = requests.post(url = login_url, data = payload, headers={'User-Agent': 'Mozilla/5.0'})
     app = wx.App()
     frame = ClientApp().Show()
     app.MainLoop()
