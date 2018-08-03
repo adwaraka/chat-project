@@ -36,7 +36,7 @@ class ChatHandler(BaseHTTPRequestHandler):
             self.send_response(400)  
 
     def do_GET(self):
-        if self.path == "/getMessages":
+        if self.path == "/messages":
             self.get_message()
 
     #check implementation goes here
@@ -122,9 +122,12 @@ class ChatHandler(BaseHTTPRequestHandler):
 
     #get_message implementation goes here
     def get_message(self):
-        content_len = int(self.headers.getheader('content-length', 0))
-        post_body = self.rfile.read(content_len)
-        print post_body
+        try:
+            print "hi"
+            return True
+        except:
+            return False
+
 
 def run():
     server_address = ('127.0.0.1', 8080)
