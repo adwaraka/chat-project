@@ -103,7 +103,8 @@ class ChatHandler(BaseHTTPRequestHandler):
             #print data["sender"], data["recipient"], data["content"]["type"], data["content"]["text"]
             sender_user_id, recipient_user_id, msg_type, data_type = data["sender"], data["recipient"], data["content"]["type"], data["content"]["text"]
             with contextlib.closing(self.conn.cursor()) as get_chat_history_cur:
-                retrieve_chat_history = "SELECT chat_field FROM chat_session WHERE ({sender_field} = \"{user_id_sender}\" AND {recipient_field} = \"{user_id_recipient}\")".format\
+                retrieve_chat_history = "SELECT chat_field FROM chat_session WHERE ({sender_field} = \"{user_id_sender}\" AND {recipient_field} = \"{user_id_recipient}\") \
+                                         UNION SELECT chat_field FROM chat_session WHERE ({sender_field} = \"{user_id_recipient}\" AND {recipient_field} = \"{user_id_sender}\")".format\
                                    (sender_field="user_id_1", user_id_sender=sender_user_id, recipient_field="user_id_2", user_id_recipient=recipient_user_id)
                 get_chat_history_cur.execute(retrieve_chat_history)
                 result = get_chat_history_cur.fetchall()
