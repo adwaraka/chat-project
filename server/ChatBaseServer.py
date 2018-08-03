@@ -108,14 +108,11 @@ class ChatHandler(BaseHTTPRequestHandler):
                 get_chat_history_cur.execute(retrieve_chat_history)
                 result = get_chat_history_cur.fetchall()
                 chat_history = result
-            (cleaned_chat_history,) = chat_history[0]
-            print cleaned_chat_history
-            '''
-            with contextlib.closing(self.conn.cursor()) as cur:
-                create_user_stmt = "SELECT COUNT(*) FROM user_credentials WHERE ({user_name_field} = \"{username}\" AND {password_field} = \"{password_value}\")".format\
-                                   (user_name_field="user_name", username=username, password_field="password", password_value=password)
-                cur.execute(create_user_stmt)
-            '''
+            if chat_history != []:
+                (cleaned_chat_history,) = chat_history[0]
+                print cleaned_chat_history
+            else:
+                print "Empty history"
             return True
         except:
             return False
