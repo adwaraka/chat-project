@@ -9,6 +9,7 @@ import ast
 class ChatHandler(BaseHTTPRequestHandler):
     def __init__(self, request, client_address, server):
         self.conn = sqlite3.connect("chat_server.sqlite", isolation_level=None)
+        self.conn.text_factory = str
         BaseHTTPRequestHandler.__init__(self, request, client_address, server)
 
     def do_POST(self):
@@ -93,9 +94,31 @@ class ChatHandler(BaseHTTPRequestHandler):
 
     #send_message implementation goes here
     def send_message(self):
-        content_len = int(self.headers.getheader('content-length', 0))
-        post_body = self.rfile.read(content_len)
-        print post_body
+        chat_history = None
+        cleaned_chat_history = None
+        try:
+            content_len = int(self.headers.getheader('content-length', 0))
+            post_body = self.rfile.read(content_len)
+            data = ast.literal_eval(post_body)
+            #print data["sender"], data["recipient"], data["content"]["type"], data["content"]["text"]
+            sender_user_id, recipient_user_id, msg_type, data_type = data["sender"], data["recipient"], data["content"]["type"], data["content"]["text"]
+            with contextlib.closing(self.conn.cursor()) as get_chat_history_cur:
+                retrieve_chat_history = "SELECT chat_field FROM chat_session WHERE ({sender_field} = \"{user_id_sender}\" AND {recipient_field} = \"{user_id_recipient}\")".format\
+                                   (sender_field="user_id_1", user_id_sender=sender_user_id, recipient_field="user_id_2", user_id_recipient=recipient_user_id)
+                get_chat_history_cur.execute(retrieve_chat_history)
+                result = get_chat_history_cur.fetchall()
+                chat_history = result
+            (cleaned_chat_history,) = chat_history[0]
+            print cleaned_chat_history
+            '''
+            with contextlib.closing(self.conn.cursor()) as cur:
+                create_user_stmt = "SELECT COUNT(*) FROM user_credentials WHERE ({user_name_field} = \"{username}\" AND {password_field} = \"{password_value}\")".format\
+                                   (user_name_field="user_name", username=username, password_field="password", password_value=password)
+                cur.execute(create_user_stmt)
+            '''
+            return True
+        except:
+            return False
 
     #get_message implementation goes here
     def get_message(self):
