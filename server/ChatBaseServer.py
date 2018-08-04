@@ -32,13 +32,13 @@ class ChatHandler(BaseHTTPRequestHandler):
         if res:
             self.send_response(200)
         else:
-            self.send_response(400)  
+            self.send_response(400)
 
     def do_GET(self):
         if "/messages" in self.path:
             self.get_message()
 
-    #check implementation goes here
+    '''check implementation goes here'''
     def handle_check(self):
         if self.query_health() != 1:
             raise Exception('unexpected query result')
@@ -51,15 +51,15 @@ class ChatHandler(BaseHTTPRequestHandler):
             (res, ) = cur.fetchone()
             return res
 
-    #create_user implementation goes here
+    '''create_user implementation goes here'''
     def create_user(self):
         try:
             content_len = int(self.headers.getheader('content-length', 0))
             post_body = self.rfile.read(content_len)
             print post_body
             data = ast.literal_eval(post_body)
-            username, password = data["username"], data["password"] #obviously we need to use a hash function to encrypt the data
-            user_id_list = [random.randint(0,9) for i in xrange(5)] #this needs to change to - better to have an alphanumeric key in db using UUId
+            username, password = data["username"], data["password"]
+            user_id_list = [random.randint(0,9) for i in xrange(5)]
             user_id = 0
             for i in user_id_list:
                 user_id = user_id*10 + i
@@ -74,7 +74,7 @@ class ChatHandler(BaseHTTPRequestHandler):
         except:
             return False
 
-    #login_user implementation goes here
+    '''login_user implementation goes here'''
     def login_user(self):
         try:
             content_len = int(self.headers.getheader('content-length', 0))
@@ -91,21 +91,50 @@ class ChatHandler(BaseHTTPRequestHandler):
         except:
             return False
 
-    #send_message implementation goes here
+    '''
+    send_message implementation goes here
+    query format: UPDATE chat_session SET chat_field = chat_field || <new_stmt> WHERE user_id_1="UName_6869" AND user_id_2="adwaraka257_82086_48726";
+    '''
+    def update_message_history(self, swapFlag, sender_id, recepient_id, msg_type, data):
+        chat_line=None
+        try:
+            with contextlib.closing(self.conn.cursor()) as cur:
+                if swapFlag:
+                    chat_line="".join(["<som>", "[", sender_id, "]: ", data, "<eom>"])
+                    update_chat_with_new = "UPDATE chat_session SET chat_field = chat_field || \"{new_chat_line}\" WHERE user_id_1=\"{sender_id_val}\" AND user_id_2=\"{recepient_id_val}\"".format\
+                                           (new_chat_line=chat_line, sender_id_val=sender_id, recepient_id_val=recepient_id)
+                else:
+                    chat_line="".join(["<som>", "[", recepient_id, "]: ", data, "<eom>"])
+                    update_chat_with_new = "UPDATE chat_session SET chat_field = chat_field || \"{new_chat_line}\" WHERE user_id_2=\"{sender_id_val}\" AND user_id_1=\"{recepient_id_val}\"".format\
+                                           (new_chat_line=chat_line, sender_id_val=sender_id, recepient_id_val=recepient_id)
+                cur.execute(update_chat_with_new)
+                return True
+            raise ValueError('Chat did not go. Dunno what happened...')
+        except:
+            return False
+
     def send_message(self):
-        chat_history = None
+        swap_sender_recipient = False
         cleaned_chat_history = None
         try:
             content_len = int(self.headers.getheader('content-length', 0))
             post_body = self.rfile.read(content_len)
             data = ast.literal_eval(post_body)
-            print data["sender"], data["recipient"], data["content"]["type"], data["content"]["text"]
-            return True
+            with contextlib.closing(self.conn.cursor()) as cur:
+                initial_stmt = "SELECT COUNT(*) FROM chat_session WHERE ({sender_field} = \"{user_id_sender}\" AND {recipient_field} = \"{user_id_recipient}\")".format\
+                               (sender_field="user_id_1", user_id_sender=data["sender"], recipient_field="user_id_2", user_id_recipient=data["recipient"])
+                cur.execute(create_user_stmt)
+                (number_of_rows,) = cur.fetchone()
+                if number_of_rows == 0:
+                    swap_sender_recipient = True
+            return self.update_message_history(swap_sender_recipient, data["sender"], data["recipient"], data["content"]["type"], data["content"]["text"])
         except:
             return False
 
-    #get_message implementation goes here
-    #Test path: http://localhost:8080/messages/UName_6869/?recipient=adwaraka257_82086_48726
+    '''
+    get_message implementation goes here
+    Test path: http://localhost:8080/messages/UName_6869/?recipient=adwaraka257_82086_48726
+    '''
     def get_message(self):
         try:
             bits = self.path
@@ -119,7 +148,6 @@ class ChatHandler(BaseHTTPRequestHandler):
                 chat_history = result
             if chat_history != []:
                 (cleaned_chat_history,) = chat_history[0]
-                print cleaned_chat_history
                 return cleaned_chat_history
             else:
                 return None
