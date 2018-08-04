@@ -5,7 +5,6 @@ import contextlib
 import random
 import ast
 
-
 class ChatHandler(BaseHTTPRequestHandler):
     def __init__(self, request, client_address, server):
         self.conn = sqlite3.connect("chat_server.sqlite", isolation_level=None)
@@ -36,7 +35,7 @@ class ChatHandler(BaseHTTPRequestHandler):
             self.send_response(400)  
 
     def do_GET(self):
-        if self.path == "/messages":
+        if "/messages" in self.path:
             self.get_message()
 
     #check implementation goes here
@@ -100,8 +99,17 @@ class ChatHandler(BaseHTTPRequestHandler):
             content_len = int(self.headers.getheader('content-length', 0))
             post_body = self.rfile.read(content_len)
             data = ast.literal_eval(post_body)
-            #print data["sender"], data["recipient"], data["content"]["type"], data["content"]["text"]
-            sender_user_id, recipient_user_id, msg_type, data_type = data["sender"], data["recipient"], data["content"]["type"], data["content"]["text"]
+            print data["sender"], data["recipient"], data["content"]["type"], data["content"]["text"]
+            return True
+        except:
+            return False
+
+    #get_message implementation goes here
+    #Test path: http://localhost:8080/messages/UName_6869/?recipient=adwaraka257_82086_48726
+    def get_message(self):
+        try:
+            bits = self.path
+            sender_user_id, recipient_user_id = bits.split("/")[2], bits.split("/")[3].split("=")[1]
             with contextlib.closing(self.conn.cursor()) as get_chat_history_cur:
                 retrieve_chat_history = "SELECT chat_field FROM chat_session WHERE ({sender_field} = \"{user_id_sender}\" AND {recipient_field} = \"{user_id_recipient}\") \
                                          UNION SELECT chat_field FROM chat_session WHERE ({sender_field} = \"{user_id_recipient}\" AND {recipient_field} = \"{user_id_sender}\")".format\
@@ -112,20 +120,11 @@ class ChatHandler(BaseHTTPRequestHandler):
             if chat_history != []:
                 (cleaned_chat_history,) = chat_history[0]
                 print cleaned_chat_history
+                return cleaned_chat_history
             else:
-                print "Empty history"
-            return True
+                return None
         except:
-            return False
-
-    #get_message implementation goes here
-    def get_message(self):
-        try:
-            print "hi"
-            return True
-        except:
-            return False
-
+            return None
 
 def run():
     server_address = ('127.0.0.1', 8080)
