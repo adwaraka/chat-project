@@ -96,18 +96,23 @@ class ChatHandler(BaseHTTPRequestHandler):
     query format: UPDATE chat_session SET chat_field = chat_field || <new_stmt> WHERE user_id_1="UName_6869" AND user_id_2="adwaraka257_82086_48726";
     '''
     def update_message_history(self, swapFlag, sender_id, recepient_id, msg_type, data):
-        chat_line=None
+        print "updating chat record:- ", swapFlag, sender_id, recepient_id, msg_type, data
+        chat_line="".join(["<som>", "[", sender_id, "]: ", data, "<eom>"])
         try:
             with contextlib.closing(self.conn.cursor()) as cur:
-                if swapFlag:
-                    chat_line="".join(["<som>", "[", sender_id, "]: ", data, "<eom>"])
+                if not swapFlag:
                     update_chat_with_new = "UPDATE chat_session SET chat_field = chat_field || \"{new_chat_line}\" WHERE user_id_1=\"{sender_id_val}\" AND user_id_2=\"{recepient_id_val}\"".format\
                                            (new_chat_line=chat_line, sender_id_val=sender_id, recepient_id_val=recepient_id)
                 else:
-                    chat_line="".join(["<som>", "[", recepient_id, "]: ", data, "<eom>"])
                     update_chat_with_new = "UPDATE chat_session SET chat_field = chat_field || \"{new_chat_line}\" WHERE user_id_2=\"{sender_id_val}\" AND user_id_1=\"{recepient_id_val}\"".format\
                                            (new_chat_line=chat_line, sender_id_val=sender_id, recepient_id_val=recepient_id)
                 cur.execute(update_chat_with_new)
+                res = cur.rowcount
+                if res == 0:
+                    insert_stmt = "INSERT INTO chat_session (user_id_1, user_id_2, chat_field) VALUES (\"{sender_id_val}\", \"{recepient_id_val}\", \"{new_chat_line}\")".format\
+                                  (sender_id_val=sender_id, recepient_id_val=recepient_id, new_chat_line=chat_line)
+                    print insert_stmt
+                    cur.execute(insert_stmt)
                 return True
             raise ValueError('Chat did not go. Dunno what happened...')
         except:
@@ -123,11 +128,12 @@ class ChatHandler(BaseHTTPRequestHandler):
             with contextlib.closing(self.conn.cursor()) as cur:
                 initial_stmt = "SELECT COUNT(*) FROM chat_session WHERE ({sender_field} = \"{user_id_sender}\" AND {recipient_field} = \"{user_id_recipient}\")".format\
                                (sender_field="user_id_1", user_id_sender=data["sender"], recipient_field="user_id_2", user_id_recipient=data["recipient"])
-                cur.execute(create_user_stmt)
+                cur.execute(initial_stmt)
                 (number_of_rows,) = cur.fetchone()
                 if number_of_rows == 0:
                     swap_sender_recipient = True
-            return self.update_message_history(swap_sender_recipient, data["sender"], data["recipient"], data["content"]["type"], data["content"]["text"])
+                return self.update_message_history(swap_sender_recipient, data["sender"], data["recipient"], data["content"]["type"], data["content"]["text"])
+            raise ValueError('Chat did not go. Dunno what happened...')
         except:
             return False
 
